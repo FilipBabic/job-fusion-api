@@ -1,4 +1,5 @@
 import express from "express";
+import firebase from "firebase-admin";
 import { db } from "../firebase.js";
 import { body, validationResult } from "express-validator";
 import authenticateUser from "../middleware/authenticate-user.js";
@@ -49,34 +50,75 @@ router.post(
       if (!recruiterDoc.exists) {
         return res.status(404).json({ error: "Recruiter not found" });
       }
-      // Check if user already created organization
+
       const recruiterData = recruiterDoc.data();
-      if (recruiterData.organization) {
+
+      let organizationRef;
+
+      if (recruiterData && recruiterData.organization) {
+        // If recruiter already has the organization, update it
+        organizationRef = recruiterData.organization;
+        // Fetch existing company data
+
+        const organizationDoc = await organizationRef.get();
+        const existingData = organizationDoc.data();
+
+        // Create an update object with only changed properties
+        const updateData = {};
+        if (name && name !== existingData.name) updateData.name = name;
+        if (location && location !== existingData.location)
+          updateData.location = location;
+        if (industry && industry !== existingData.industry)
+          updateData.industry = industry;
+        if (
+          description !== undefined &&
+          description !== existingData.description
+        )
+          updateData.description = description;
+        if (website !== undefined && website !== existingData.website)
+          updateData.website = website;
+        if (logo !== undefined && logo !== existingData.logo)
+          updateData.logo = logo;
+
+        if (Object.keys(updateData).length === 0) {
+          return res.status(400).json({ error: "No fields to update." });
+        }
+
+        // Update the organization document
+        await organizationRef.update({
+          ...updateData,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+
         return res
-          .status(403)
-          .json({ error: "You can only create one company per profile" });
+          .status(200)
+          .json({ message: `Organization ${name} updated successfully` });
+      } else {
+        // Recruiter does not have the organization, create a new one
+        organizationRef = db.collection("organizations").doc();
+
+        await organizationRef.set({
+          name,
+          location,
+          industry,
+          description: description || "",
+          website: website || "",
+          logo: logo || "",
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+
+        // Update the recruiter document with a reference to the new company
+        await recruiterRef.update({
+          organization: organizationRef,
+        });
+
+        res.status(201).json({
+          msg: `Organization ${name} created successfully`,
+        });
       }
-
-      // Create a new organization document
-      const organizationRef = db.collection("organizations").doc();
-      await organizationRef.set({
-        name,
-        location,
-        industry,
-        description: description || null,
-        website: website || null,
-        logo: logo || null,
-      });
-
-      // Link the organization to the recruiter
-      await recruiterRef.update({
-        organization: organizationRef,
-      });
-      res.status(201).json({
-        msg: `Organization ${name} successfully created`,
-      });
     } catch (error) {
-      res.status(500).json({ error: "Error while creating company" });
+      res.status(500).json({ error: "Error while creating organization" });
     }
   }
 );
