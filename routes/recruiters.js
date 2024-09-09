@@ -113,12 +113,106 @@ router.post(
           organization: organizationRef,
         });
 
-        res.status(201).json({
+        return res.status(201).json({
           msg: `Organization ${name} created successfully`,
         });
       }
     } catch (error) {
-      res.status(500).json({ error: "Error while creating organization" });
+      return res
+        .status(500)
+        .json({ error: "Error while creating organization" });
+    }
+  }
+);
+
+// @desc Post a job to job_postings - route. Recruiter can create many jobs.
+// @route POST api/recruiters/post-job
+// @TODO: Change typeof start and expire date, from string to timestamp
+
+router.post(
+  "/post-job",
+  authenticateUser,
+  checkIsRecruiter,
+  [
+    body("title")
+      .notEmpty()
+      .withMessage("Job title is required")
+      .isString()
+      .withMessage("Job title must be a string"),
+    body("location")
+      .notEmpty()
+      .withMessage("Job Location is required")
+      .isString()
+      .withMessage("Job location must be a string"),
+    body("starts")
+      .notEmpty()
+      .withMessage("Job starting date is required")
+      .isString()
+      .withMessage("Job starting date must be a string"),
+    body("expires")
+      .notEmpty()
+      .withMessage("Job expiring date is required")
+      .isString()
+      .withMessage("Job expiring date must be a string"),
+    body("skills")
+      .notEmpty()
+      .withMessage("Skills field is required")
+      .isArray()
+      .withMessage("Skills must be an array"),
+  ],
+  async (req, res) => {
+    // Checking if there is an error in body validation
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const errorMessage = errors
+        .array()
+        .map((error) => error.msg)
+        .join(", ");
+      return res.status(400).json({ error: errorMessage });
+    }
+    const { title, location, starts, expires, skills } = req.body;
+    const recruiterId = req.user.uid;
+
+    try {
+      const recruiterRef = db.collection("recruiters").doc(recruiterId);
+      const recruiterDoc = await recruiterRef.get();
+
+      if (!recruiterDoc.exists) {
+        return res.status(404).json({ error: "Recruiter not found" });
+      }
+
+      const recruiterData = recruiterDoc.data();
+
+      if (!recruiterData || !recruiterData.organization) {
+        return res.status(401).json({
+          error: "Organization not found. Please create organization first",
+        });
+      }
+
+      const organizationRef = recruiterData.organization;
+
+      const jobPostingsRef = db.collection("job_postings").doc();
+      await jobPostingsRef.set({
+        title,
+        location,
+        starts,
+        expires,
+        skills,
+        organization: organizationRef,
+        recruiter: recruiterRef,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+
+      await recruiterRef.update({
+        postedJobs: firebase.firestore.FieldValue.arrayUnion(jobPostingsRef), // Add job reference to postedJobs array
+      });
+
+      return res
+        .status(201)
+        .json({ msg: "Job successfully posted to job_postings" });
+    } catch (error) {
+      return res.status(500).json({ error: "Error with posting job" });
     }
   }
 );
