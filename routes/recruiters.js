@@ -7,7 +7,7 @@ import checkIsRecruiter from "../middleware/check-is-recruiter.js";
 
 const router = express.Router();
 
-// @desc Create organization route. Recruiter can create one organization only.
+// @desc Create or update organization route. Recruiter can create one organization only.
 // @route POST api/recruiters/organization
 router.post(
   "/organization",
@@ -94,7 +94,7 @@ router.post(
           .status(200)
           .json({ message: `Organization ${name} updated successfully` });
       } else {
-        // Recruiter does not have the organization, create a new one
+        // If recruiter does not have the organization, create a new one
         organizationRef = db.collection("organizations").doc();
 
         await organizationRef.set({
@@ -108,7 +108,7 @@ router.post(
           updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         });
 
-        // Update the recruiter document with a reference to the new company
+        // Link recruiter document with a reference to the new company
         await recruiterRef.update({
           organization: organizationRef,
         });
