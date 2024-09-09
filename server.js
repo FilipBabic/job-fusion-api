@@ -3,6 +3,7 @@ import cors from "cors";
 import users from "./routes/users.js";
 import jobs from "./routes/jobs.js";
 import admins from "./routes/admins.js";
+import recruiters from "./routes/recruiters.js";
 import logger from "./middleware/logger.js";
 import errorHandler from "./middleware/error.js";
 import notFound from "./middleware/not-found.js";
@@ -38,6 +39,8 @@ app.use("/api/jobs", jobs);
 // Admin routes
 app.use("/api/admins", admins);
 
+// Recruiters routes
+app.use("/api/recruiters", recruiters);
 // Error handler middleware
 app.use(notFound);
 app.use(errorHandler);

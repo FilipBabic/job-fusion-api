@@ -19,7 +19,7 @@ router.delete("/:id", authenticateUser, checkIsAdmin, async (req, res) => {
     }
 
     await jobSeekerRef.delete();
-    res.status(200).json({ error: "Job posting deleted successfully" });
+    res.status(200).json({ msg: "Job posting deleted successfully" });
   } catch (error) {
     res.status(500).json({ error: "Error deleting job posting" });
   }

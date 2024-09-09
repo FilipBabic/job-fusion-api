@@ -9,11 +9,11 @@
 - **User Management**: Register, authenticate, and manage users with different roles.
 - **Job Postings**: Create, update, and delete job postings.
 - **Search Functionality**: Search for job postings based on various criteria.
-- **Role-Based Access Control**: Different features and access based on user roles (Job Seeker, Recruiter).
+- **Role-Based Access Control**: Different features and access based on user roles (Job Seeker, Recruiter, Admin, Head Admin).
 
 ## Technologies
 
 - **Node.js**: Backend runtime environment
 - **Express.js**: Web application framework
 - **Firebase**: Authentication and database management
-- **Firestore**: NoSQL database for storing job postings and user data
+- **Firestore**: NoSQL database for storing job postings,organizations and user data
