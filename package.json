@@ -1,0 +1,28 @@
+{
+  "name": "job-fusion-api",
+  "version": "1.0.0",
+  "description": "Node JS,Express API for job fusion application",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server",
+    "dev": "node --watch --env-file=.env server"
+  },
+  "keywords": [
+    "NodeJS",
+    "JavaScript",
+    "Express",
+    "web-api",
+    "job-fusion",
+    "job-fusion-api"
+  ],
+  "author": "Filip Babić",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "express-validator": "^7.2.0",
+    "firebase": "^10.13.1",
+    "firebase-admin": "^12.4.0"
+  }
+}
