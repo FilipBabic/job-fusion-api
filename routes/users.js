@@ -25,6 +25,7 @@ router.post(
     if (!errors.isEmpty()) {
       const errorMessage = errors
         .array()
+        .slice(0, 20)
         .map((error) => error.msg)
         .join(", ");
       return res.status(400).json({ error: errorMessage });

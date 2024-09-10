@@ -36,6 +36,7 @@ router.post(
     if (!errors.isEmpty()) {
       const errorMessage = errors
         .array()
+        .slice(0, 20)
         .map((error) => error.msg)
         .join(", ");
       return res.status(400).json({ error: errorMessage });
@@ -159,6 +160,44 @@ router.post(
       .withMessage("Skills field is required")
       .isArray()
       .withMessage("Skills must be an array"),
+    // Validate the array length for job skills
+    body("skills").custom((value) => {
+      if (value.length <= 0 || value.length > 20) {
+        throw new Error("Job skills cannot be empty or exceed 20 items");
+      }
+      return true;
+    }),
+    body("skills.*").isString().withMessage("Each skill must be a string"),
+    body("jobDescriptions")
+      .notEmpty()
+      .withMessage("Job descriptions is required")
+      .isArray()
+      .withMessage("Job descriptions must be an array"),
+    // Validate the array length for jobDescriptions
+    body("jobDescriptions").custom((value) => {
+      if (value.length <= 0 || value.length > 15) {
+        throw new Error("Job descriptions cannot be empty or exceed 5 items");
+      }
+      return true;
+    }),
+    // Validate individual keys and values inside jobDescriptions array
+    body("jobDescriptions.*.key")
+      .notEmpty()
+      .withMessage("Key is required for each description")
+      .isString()
+      .withMessage("Key must be a string"),
+    body("jobDescriptions.*.value").custom((value) => {
+      if (Array.isArray(value)) {
+        // Check if all values in the array are strings
+        const allStrings = value.every((item) => typeof item === "string");
+        if (!allStrings) {
+          throw new Error("All values in the array must be strings");
+        }
+      } else if (typeof value !== "string") {
+        throw new Error("Value must be a string or an array of strings");
+      }
+      return true;
+    }),
   ],
   async (req, res) => {
     // Checking if there is an error in body validation
@@ -166,11 +205,22 @@ router.post(
     if (!errors.isEmpty()) {
       const errorMessage = errors
         .array()
+        .slice(0, 20)
         .map((error) => error.msg)
         .join(", ");
       return res.status(400).json({ error: errorMessage });
     }
-    const { title, location, starts, expires, skills } = req.body;
+
+    const {
+      title,
+      location,
+      starts,
+      expires,
+      skills,
+      jobDescriptions,
+      salary,
+      type,
+    } = req.body;
     const recruiterId = req.user.uid;
 
     try {
@@ -198,8 +248,12 @@ router.post(
         starts,
         expires,
         skills,
+        jobDescriptions,
         organization: organizationRef,
         recruiter: recruiterRef,
+        salary: salary || "",
+        type: type || "",
+        applicants: [],
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       });
