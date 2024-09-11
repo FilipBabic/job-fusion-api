@@ -8,13 +8,30 @@ const router = express.Router();
 // @route GET api/jobs/all
 router.get("/all", async (req, res) => {
   try {
-    const jobsRef = await db.collection("jobPostings").get();
+    const jobsRef = await db
+      .collection("job_postings")
+      .select(
+        "title",
+        "starts",
+        "expires",
+        "location",
+        "organization",
+        "organizationName",
+        "organizationLogo",
+        "type"
+      )
+      .get();
 
     if (jobsRef.empty) {
-      return res.status(404).json({ error: "Collection not found" });
+      return res.status(404).json({ error: "Job postings not found" });
     }
 
-    const allJobs = jobsRef.docs.map((doc) => doc.data());
+    const allJobs = [];
+    for (const jobDoc of jobsRef.docs) {
+      const jobData = jobDoc.data();
+
+      allJobs.push(jobData);
+    }
 
     return res.status(200).json(allJobs);
   } catch (error) {
@@ -27,12 +44,25 @@ router.get("/all", async (req, res) => {
 router.get("/", async (req, res) => {
   try {
     const { pageToken } = req.query; // `pageToken` will be the document ID of the last doc from previous page
-    let jobsRef = db.collection("jobPostings").orderBy("createdAt").limit(10);
+    let jobsRef = db
+      .collection("job_postings")
+      .select(
+        "title",
+        "starts",
+        "expires",
+        "location",
+        "organization",
+        "organizationName",
+        "organizationLogo",
+        "type"
+      )
+      .orderBy("createdAt")
+      .limit(2);
 
     // If there's a pageToken, start after the document with that ID
     if (pageToken) {
       const lastDocRef = await db
-        .collection("jobPostings")
+        .collection("job_postings")
         .doc(pageToken)
         .get();
       jobsRef = jobsRef.startAfter(lastDocRef);
@@ -59,6 +89,31 @@ router.get("/", async (req, res) => {
   } catch (error) {
     console.error("Error retrieving jobs:", error.message);
     return res.status(500).json({ error: "Failed to retrieve jobs" });
+  }
+});
+
+// @desc get job details route
+// @route GET api/jobs/:id
+router.get("/:id", async (req, res) => {
+  const uid = req.params.id;
+  try {
+    const jobRef = db.collection("job_postings").doc(uid);
+    const jobDoc = await jobRef.get();
+
+    if (!jobDoc.exists) {
+      return res.status(400).json({ error: "User not found" });
+    }
+
+    const jobData = jobDoc.data();
+
+    delete jobData.organizationRef;
+    delete jobData.recruiterRef;
+    delete jobData.createdAt;
+    delete jobData.updatedAt;
+
+    return res.status(200).json(jobData);
+  } catch (error) {
+    return res.status(500).json({ error: "Error while fetching jobs" });
   }
 });
 

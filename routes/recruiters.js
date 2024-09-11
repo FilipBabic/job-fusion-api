@@ -1,7 +1,11 @@
 import express from "express";
 import firebase from "firebase-admin";
 import { db } from "../firebase.js";
-import { body, validationResult } from "express-validator";
+import {
+  validateOrganization,
+  validateJobPosting,
+} from "../middleware/validator.js";
+import { validationResult } from "express-validator";
 import authenticateUser from "../middleware/authenticate-user.js";
 import checkIsRecruiter from "../middleware/check-is-recruiter.js";
 
@@ -9,27 +13,12 @@ const router = express.Router();
 
 // @desc Create or update organization route. Recruiter can create one organization only.
 // @route POST api/recruiters/organization
+// TODO add organization type prop
 router.post(
   "/organization",
   authenticateUser,
   checkIsRecruiter,
-  [
-    body("name")
-      .notEmpty()
-      .withMessage("Company name is required")
-      .isString()
-      .withMessage("Company name must be a string"),
-    body("location")
-      .notEmpty()
-      .withMessage("Location is required")
-      .isString()
-      .withMessage("Company location must be a string"),
-    body("industry")
-      .notEmpty()
-      .withMessage("Industry is required")
-      .isString()
-      .withMessage("Company industry must be a string"),
-  ],
+  validateOrganization,
   async (req, res) => {
     // Checking if there is an error in body validation
     const errors = validationResult(req);
@@ -41,9 +30,21 @@ router.post(
         .join(", ");
       return res.status(400).json({ error: errorMessage });
     }
+
     // Get user id from authentificate middleware
     const recruiterID = req.user.uid;
-    const { name, location, industry, description, website, logo } = req.body;
+    const {
+      name,
+      about,
+      country,
+      city,
+      address,
+      industry,
+      email,
+      website,
+      logo,
+    } = req.body;
+
     try {
       const recruiterRef = db.collection("recruiters").doc(recruiterID);
       const recruiterDoc = await recruiterRef.get();
@@ -59,7 +60,7 @@ router.post(
       if (recruiterData && recruiterData.organization) {
         // If recruiter already has the organization, update it
         organizationRef = recruiterData.organization;
-        // Fetch existing company data
+        // Fetch existing organization data
 
         const organizationDoc = await organizationRef.get();
         const existingData = organizationDoc.data();
@@ -67,15 +68,16 @@ router.post(
         // Create an update object with only changed properties
         const updateData = {};
         if (name && name !== existingData.name) updateData.name = name;
-        if (location && location !== existingData.location)
-          updateData.location = location;
+        if (country && country !== existingData.country)
+          updateData.country = country;
+        if (city && city !== existingData.city) updateData.city = city;
+        if (address && address !== existingData.address)
+          updateData.address = address;
         if (industry && industry !== existingData.industry)
           updateData.industry = industry;
-        if (
-          description !== undefined &&
-          description !== existingData.description
-        )
-          updateData.description = description;
+        if (about && about !== existingData.about) updateData.about = about;
+        if (email !== undefined && email !== existingData.email)
+          updateData.email = email;
         if (website !== undefined && website !== existingData.website)
           updateData.website = website;
         if (logo !== undefined && logo !== existingData.logo)
@@ -100,16 +102,19 @@ router.post(
 
         await organizationRef.set({
           name,
-          location,
+          country,
+          city,
+          address,
           industry,
-          description: description || "",
+          about,
+          email: email || "",
           website: website || "",
           logo: logo || "",
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
           updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         });
 
-        // Link recruiter document with a reference to the new company
+        // Link recruiter document with a reference to the new organization
         await recruiterRef.update({
           organization: organizationRef,
         });
@@ -134,71 +139,7 @@ router.post(
   "/post-job",
   authenticateUser,
   checkIsRecruiter,
-  [
-    body("title")
-      .notEmpty()
-      .withMessage("Job title is required")
-      .isString()
-      .withMessage("Job title must be a string"),
-    body("location")
-      .notEmpty()
-      .withMessage("Job Location is required")
-      .isString()
-      .withMessage("Job location must be a string"),
-    body("starts")
-      .notEmpty()
-      .withMessage("Job starting date is required")
-      .isString()
-      .withMessage("Job starting date must be a string"),
-    body("expires")
-      .notEmpty()
-      .withMessage("Job expiring date is required")
-      .isString()
-      .withMessage("Job expiring date must be a string"),
-    body("skills")
-      .notEmpty()
-      .withMessage("Skills field is required")
-      .isArray()
-      .withMessage("Skills must be an array"),
-    // Validate the array length for job skills
-    body("skills").custom((value) => {
-      if (value.length <= 0 || value.length > 20) {
-        throw new Error("Job skills cannot be empty or exceed 20 items");
-      }
-      return true;
-    }),
-    body("skills.*").isString().withMessage("Each skill must be a string"),
-    body("jobDescriptions")
-      .notEmpty()
-      .withMessage("Job descriptions is required")
-      .isArray()
-      .withMessage("Job descriptions must be an array"),
-    // Validate the array length for jobDescriptions
-    body("jobDescriptions").custom((value) => {
-      if (value.length <= 0 || value.length > 15) {
-        throw new Error("Job descriptions cannot be empty or exceed 5 items");
-      }
-      return true;
-    }),
-    // Validate individual keys and values inside jobDescriptions array
-    body("jobDescriptions.*.key")
-      .notEmpty()
-      .withMessage("Key is required for each description")
-      .isString()
-      .withMessage("Key must be a string"),
-    body("jobDescriptions.*.value").custom((value) => {
-      if (Array.isArray(value)) {
-        // Check if all values in the array are strings
-        const allStrings = value.every((item) => typeof item === "string");
-        if (!allStrings) {
-          throw new Error("All values in the array must be strings");
-        }
-      } else if (typeof value !== "string") {
-        throw new Error("Value must be a string or an array of strings");
-      }
-      return true;
-    }),
-  ],
+  validateJobPosting,
   async (req, res) => {
     // Checking if there is an error in body validation
     const errors = validationResult(req);
@@ -240,26 +181,34 @@ router.post(
       }
 
       const organizationRef = recruiterData.organization;
+      const organizationDoc = await organizationRef.get();
+      const organizationData = organizationDoc.data();
 
-      const jobPostingsRef = db.collection("job_postings").doc();
-      await jobPostingsRef.set({
+      if (!organizationData || !organizationData.name) {
+        return res.status(401).json({ error: "Organization data not found" });
+      }
+
+      const jobRef = db.collection("job_postings").doc();
+      await jobRef.set({
         title,
         location,
         starts,
         expires,
         skills,
         jobDescriptions,
-        organization: organizationRef,
-        recruiter: recruiterRef,
-        salary: salary || "",
-        type: type || "",
         applicants: [],
+        type: type || "",
+        salary: salary || "",
+        organizationName: organizationData.name,
+        organizationLogo: organizationData.logo || "no_logo.png",
+        organizationRef: organizationRef,
+        recruiterRef: recruiterRef,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       });
 
       await recruiterRef.update({
-        postedJobs: firebase.firestore.FieldValue.arrayUnion(jobPostingsRef), // Add job reference to postedJobs array
+        postedJobs: firebase.firestore.FieldValue.arrayUnion(jobRef), // Add job reference to postedJobs array
       });
 
       return res
