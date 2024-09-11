@@ -58,9 +58,7 @@ router.post("/login", async (req, res) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res
-      .status(401)
-      .json({ error: "No token provided or invalid format" });
+    return res.status(401).json({ error: "No token provided or invalid format" });
   }
 
   const token = authHeader.split(" ")[1];
@@ -72,12 +70,7 @@ router.post("/login", async (req, res) => {
     let role = null;
 
     // Checking which collection the user belongs to
-    for (const userRole of [
-      "job_seekers",
-      "recruiters",
-      "admins",
-      "head_admins",
-    ]) {
+    for (const userRole of ["job_seekers", "recruiters", "admins", "head_admins"]) {
       const userRef = db.collection(userRole).doc(uid);
       const userDoc = await userRef.get();
 

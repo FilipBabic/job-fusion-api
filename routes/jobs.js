@@ -1,7 +1,7 @@
 import express from "express";
 import { db } from "../firebase.js";
-import authenticateUser from "../middleware/authenticate-user.js";
-import checkIsAdmin from "../middleware/check-is-admin.js";
+import authenticateUser from "../middleware/auth/authenticate-user.js";
+import checkIsAdmin from "../middleware/auth/check-is-admin.js";
 const router = express.Router();
 
 // @desc Route to get all jobs
@@ -61,10 +61,7 @@ router.get("/", async (req, res) => {
 
     // If there's a pageToken, start after the document with that ID
     if (pageToken) {
-      const lastDocRef = await db
-        .collection("job_postings")
-        .doc(pageToken)
-        .get();
+      const lastDocRef = await db.collection("job_postings").doc(pageToken).get();
       jobsRef = jobsRef.startAfter(lastDocRef);
     }
 

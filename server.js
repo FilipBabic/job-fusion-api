@@ -5,8 +5,8 @@ import jobs from "./routes/jobs.js";
 import admins from "./routes/admins.js";
 import recruiters from "./routes/recruiters.js";
 import logger from "./middleware/logger.js";
-import errorHandler from "./middleware/error.js";
-import notFound from "./middleware/not-found.js";
+import errorHandler from "./middleware/errors/error.js";
+import notFound from "./middleware/errors/not-found.js";
 
 const port = process.env.PORT || 8000;
 

@@ -1,42 +1,6 @@
 import { check } from "express-validator";
 
-// Validate organization input
-
-const validateOrganization = [
-  check("name")
-    .notEmpty()
-    .withMessage("Name is required")
-    .isString()
-    .withMessage("Name must be a string"),
-  check("about")
-    .notEmpty()
-    .withMessage("About is required")
-    .isString()
-    .withMessage("About must be a string"),
-  check("country")
-    .notEmpty()
-    .withMessage("Country is required")
-    .isString()
-    .withMessage("Country must be a string"),
-  check("city")
-    .notEmpty()
-    .withMessage("City is required")
-    .isString()
-    .withMessage("City must be a string"),
-  check("address")
-    .notEmpty()
-    .withMessage("Address is required")
-    .isString()
-    .withMessage("Address must be a string"),
-  check("industry")
-    .notEmpty()
-    .withMessage("Industry is required")
-    .isString()
-    .withMessage("Industry must be a string"),
-];
-
 // Validate job posting input
-
 const validateJobPosting = [
   check("title")
     .notEmpty()
@@ -104,4 +68,5 @@ const validateJobPosting = [
   check("type").isString().withMessage("Job type must be a string"),
   check("salary").isString().withMessage("Salary range must be a string"),
 ];
-export { validateOrganization, validateJobPosting };
+
+export { validateJobPosting };
