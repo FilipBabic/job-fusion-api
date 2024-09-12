@@ -300,4 +300,42 @@ router.patch(
     }
   }
 );
+
+// @desc Get a jobs for logged recruiter - route. Recruiter can have many jobs for his organization.
+// @route GET api/recruiters/jobs
+
+router.get("/jobs", authenticateUser, checkIsRecruiter, async (req, res) => {
+  const recruiterId = req.user.uid;
+
+  try {
+    const recruiterRef = db.collection("recruiters").doc(recruiterId);
+    const recruiterDoc = await recruiterRef.get();
+
+    if (!recruiterDoc.exists) {
+      return res.status(404).json({ error: " Recruiter not found" });
+    }
+
+    const recruiterData = recruiterDoc.data();
+
+    if (!recruiterData.postedJobs || recruiterData.postedJobs.length === 0) {
+      return res.status(404).json({ message: "No job postings found for this recruiter" });
+    }
+
+    // Fetch job details for each job posting reference
+    const jobPostings = [];
+    for (const jobRef of recruiterData.postedJobs) {
+      const jobDoc = await jobRef.get();
+      if (jobDoc.exists) {
+        jobPostings.push({
+          id: jobDoc.id,
+          ...jobDoc.data(),
+        });
+      }
+    }
+
+    return res.status(200).json(jobPostings);
+  } catch (error) {
+    return res.status(500).json({ error: "Failed to fetch jobs" });
+  }
+});
 export default router;
