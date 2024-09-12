@@ -1,9 +1,10 @@
 import express from "express";
 import firebase from "firebase-admin";
 import { db } from "../firebase.js";
-import { validateOrganization } from "../middleware/validators/organizationValidator.js";
-import { validateOrganizationUpdate } from "../middleware/validators/organizationUpdateValidator.js";
-import { validateJobPosting } from "../middleware/validators/jobPostingValidator.js";
+import { validateOrganization } from "../middleware/validators/organization-validator.js";
+import { validateOrganizationUpdate } from "../middleware/validators/organization-update-validator.js";
+import { validateJobPosting } from "../middleware/validators/job-posting-validator.js";
+import { validateJobUpdating } from "../middleware/validators/job-update-validator.js";
 import { validationResult } from "express-validator";
 import authenticateUser from "../middleware/auth/authenticate-user.js";
 import checkIsRecruiter from "../middleware/auth/check-is-recruiter.js";
@@ -73,7 +74,7 @@ router.post(
         msg: `Organization ${name} created successfully`,
       });
     } catch (error) {
-      return res.status(500).json({ error: "Error while creating organization" });
+      return res.status(500).json({ error: "Failed to create organization" });
     }
   }
 );
@@ -142,7 +143,7 @@ router.patch(
       await organizationRef.update(filteredUpdates);
       res.status(200).json({ msg: "Organization updated successffully" });
     } catch (error) {
-      res.status(500).json({ error: "Error updating organization" });
+      res.status(500).json({ error: "Failed to update organization" });
     }
   }
 );
@@ -218,9 +219,84 @@ router.post(
         postedJobs: firebase.firestore.FieldValue.arrayUnion(jobRef), // Add job reference to postedJobs array
       });
 
-      return res.status(201).json({ msg: "Job successfully posted to job_postings" });
+      return res.status(201).json({ msg: "Job created successfully" });
     } catch (error) {
-      return res.status(500).json({ error: "Error with posting job" });
+      return res.status(500).json({ error: "Failed to post a job" });
+    }
+  }
+);
+
+// @desc Update a job - route. Recruiter can only upgrade jobs that he has published
+// @route PATCH api/recruiters/update-job/:id
+// @TODO: fix validation for array of jobDescriptions
+
+router.patch(
+  "/update-job/:id",
+  authenticateUser,
+  checkIsRecruiter,
+  validateJobUpdating,
+  async (req, res) => {
+    // Checking if there is an error in body validation
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const errorMessage = errors
+        .array()
+        .slice(0, 20)
+        .map((error) => error.msg)
+        .join(", ");
+      return res.status(400).json({ error: errorMessage });
+    }
+    const { id } = req.params;
+    const updates = req.body;
+    const { postedJobs } = req.user;
+
+    const allowedFields = [
+      "title",
+      "location",
+      "starts",
+      "expires",
+      "skills",
+      "jobDescriptions",
+      "type",
+      "salary",
+    ];
+
+    const filteredUpdates = Object.keys(updates)
+      .filter((key) => allowedFields.includes(key))
+      .reduce((obj, key) => {
+        obj[key] = updates[key];
+        return obj;
+      }, {});
+
+    if (Object.keys(filteredUpdates).length === 0) {
+      return res.status(400).json({ error: "No valid fields provided for update" });
+    }
+
+    try {
+      // Get reference to the job that the recruiter wants to update
+      const jobRef = db.collection("job_postings").doc(id);
+
+      // Check if the jobRef exists in the recruiter's postedJobs (array of references)
+      const jobOwnedByRecruiter = postedJobs.some(
+        (postedJobRef) => postedJobRef.path === jobRef.path
+      );
+
+      // If the job is not owned by the recruiter, deny access
+      if (!jobOwnedByRecruiter) {
+        return res.status(403).json({
+          error: "You are not authorized to update this job.",
+        });
+      }
+
+      // Update the job in the 'job_postings' collection
+      await jobRef.update({
+        ...filteredUpdates,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+
+      return res.status(200).json({ msg: "Job updated successfully" });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to update job" });
     }
   }
 );
