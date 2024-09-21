@@ -2,13 +2,7 @@ import { admin, db } from "../../firebase.js";
 
 // @desc Middleware to authenticate user using Firebase token
 const authenticateUser = async (req, res, next) => {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "No token provided or invalid format" });
-  }
-
-  const token = authHeader.split(" ")[1];
+  const token = req.cookies.ftoken;
 
   try {
     // Verify Firebase token
@@ -26,11 +20,11 @@ const authenticateUser = async (req, res, next) => {
       }
     }
     if (!userDoc) {
-      res.status(400).json({ error: "User doesn't exists" });
+      return res.status(400).json({ error: "User doesn't exists" });
     }
     next();
   } catch (error) {
-    res.status(403).json({ error: "Invalid Token" });
+    return res.status(403).json({ error: "Invalid Token" });
   }
 };
 

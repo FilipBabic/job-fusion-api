@@ -1,4 +1,5 @@
 import express from "express";
+import firebase from "firebase-admin";
 import { admin, db } from "../firebase.js";
 import { body, validationResult } from "express-validator";
 
@@ -43,6 +44,7 @@ router.post(
           uid,
           email,
           role,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         });
       }
       return res.status(201).send("User registered successfully");
@@ -76,13 +78,23 @@ router.post("/login", async (req, res) => {
 
       if (userDoc.exists) {
         role = userRole;
+
+        await userRef.update({
+          lastLogin: firebase.firestore.FieldValue.serverTimestamp(),
+        });
         break;
       }
     }
     if (!role) {
       return res.status(400).json({ error: "User role not found" });
     }
-
+    const cookieConfig = {
+      httpOnly: true, // to disable accessing cookie via client side js
+      //secure: true, // to force https (if you use it)
+      maxAge: 1000000, // ttl in seconds (remove this option and cookie will die when browser is closed)
+      // signed: true, // if you use the secret with cookieParser
+    };
+    res.cookie("ftoken", `${token}`, cookieConfig);
     return res.status(200).json({ uid, email, role });
   } catch (error) {
     return res.status(500).json({ error: "Invalid token" });
