@@ -1,5 +1,6 @@
 import express from "express";
 import { db } from "../firebase.js";
+import { generateETag } from "../utils/generate-etag.js";
 import authenticateUser from "../middleware/auth/authenticate-user.js";
 import checkIsAdmin from "../middleware/auth/check-is-admin.js";
 const router = express.Router();
@@ -75,6 +76,19 @@ router.get("/", async (req, res) => {
       id: doc.id, // Include the document ID for pagination
       ...doc.data(),
     }));
+
+    const etag = generateETag(jobs);
+    res.setHeader("ETag", etag);
+
+    res.set({
+      "Cache-Control": "public, max-age=30", // Cache for 30 seconds
+      ETag: etag,
+    });
+
+    if (req.headers["if-none-match"] === etag) {
+      console.log("Data has not change");
+      return res.status(304).end("Data has not change");
+    }
 
     // Get the last document in the snapshot for pagination
     const lastDoc = snapshot.docs[snapshot.docs.length - 1];
