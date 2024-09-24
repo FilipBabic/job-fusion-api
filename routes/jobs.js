@@ -55,10 +55,11 @@ router.get("/", async (req, res) => {
         "organization",
         "organizationName",
         "organizationLogo",
-        "type"
+        "type",
+        "skills"
       )
       .orderBy("createdAt")
-      .limit(2);
+      .limit(4);
 
     // If there's a pageToken, start after the document with that ID
     if (pageToken) {
@@ -112,7 +113,7 @@ router.get("/:id", async (req, res) => {
     const jobDoc = await jobRef.get();
 
     if (!jobDoc.exists) {
-      return res.status(400).json({ error: "User not found" });
+      return res.status(400).json({ error: `Job with ID ${uid} not found` });
     }
 
     const jobData = jobDoc.data();
