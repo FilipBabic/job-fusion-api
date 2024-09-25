@@ -6,6 +6,7 @@ import jobs from "./routes/jobs.js";
 import admins from "./routes/admins.js";
 import recruiters from "./routes/recruiters.js";
 import jobseekers from "./routes/job-seekers.js";
+import ogranizations from "./routes/organizations.js";
 import logger from "./middleware/logger.js";
 import errorHandler from "./middleware/errors/error.js";
 import notFound from "./middleware/errors/not-found.js";
@@ -47,6 +48,10 @@ app.use("/api/recruiters", recruiters);
 
 // Job-seeker routes
 app.use("/api/job-seekers", jobseekers);
+
+// Organization routes
+app.use("/api/organizations", ogranizations);
+
 // Error handler middleware
 app.use(notFound);
 app.use(errorHandler);
