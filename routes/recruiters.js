@@ -21,7 +21,7 @@ router.get("/organization", authenticateUser, checkIsRecruiter, async (req, res)
     const recruiterDoc = await recruiterRef.get();
 
     if (!recruiterDoc.exists) {
-      return res.status(404).json({ error: "Recruiter not found" });
+      return res.status(404).json({ error: "Recruiter not found", status: "404" });
     }
 
     const organizationRef = recruiterDoc.data().organization;
@@ -38,7 +38,7 @@ router.get("/organization", authenticateUser, checkIsRecruiter, async (req, res)
 
     res.status(200).json(organizationData);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch organization" });
+    res.status(500).json({ error: "Failed to fetch organization", status: "500" });
   }
 });
 
@@ -59,7 +59,7 @@ router.post(
         .slice(0, 20)
         .map((error) => error.msg)
         .join(", ");
-      return res.status(400).json({ error: errorMessage });
+      return res.status(400).json({ error: errorMessage, status: "400" });
     }
 
     // Get user id from authentificate middleware
@@ -71,7 +71,7 @@ router.post(
       const recruiterDoc = await recruiterRef.get();
 
       if (!recruiterDoc.exists) {
-        return res.status(404).json({ error: "Recruiter not found" });
+        return res.status(404).json({ error: "Recruiter not found", status: "404" });
       }
 
       const recruiterData = recruiterDoc.data();
@@ -105,7 +105,7 @@ router.post(
         msg: `Organization ${name} created successfully`,
       });
     } catch (error) {
-      return res.status(500).json({ error: "Failed to create organization" });
+      return res.status(500).json({ error: "Failed to create organization", status: "500" });
     }
   }
 );
@@ -127,7 +127,7 @@ router.patch(
         .slice(0, 20)
         .map((error) => error.msg)
         .join(", ");
-      return res.status(400).json({ error: errorMessage });
+      return res.status(400).json({ error: errorMessage, status: "400" });
     }
     const recruiterID = req.user.uid;
     const updates = req.body;
@@ -153,19 +153,19 @@ router.patch(
       }, {});
 
     if (Object.keys(filteredUpdates).length === 0) {
-      return res.status(400).json({ error: "No valid fields provided for update" });
+      return res.status(400).json({ error: "No valid fields provided for update", status: "400" });
     }
     try {
       const recruiterRef = db.collection("recruiters").doc(recruiterID);
       const recruiterDoc = await recruiterRef.get();
 
       if (!recruiterDoc.exists) {
-        return res.status(404).json({ error: "Recruiter not found" });
+        return res.status(404).json({ error: "Recruiter not found", status: "404" });
       }
       const recruiterData = recruiterDoc.data();
 
       if (!recruiterData.organization) {
-        return res.status(404).json({ error: "Organization not found" });
+        return res.status(404).json({ error: "Organization not found", status: "404" });
       }
 
       const organizationRef = recruiterData.organization;
@@ -174,7 +174,7 @@ router.patch(
       await organizationRef.update(filteredUpdates);
       res.status(200).json({ msg: "Organization updated successffully" });
     } catch (error) {
-      res.status(500).json({ error: "Failed to update organization" });
+      res.status(500).json({ error: "Failed to update organization", status: "500" });
     }
   }
 );
@@ -190,7 +190,7 @@ router.delete("/organization", authenticateUser, checkIsRecruiter, async (req, r
     const recruiterDoc = await recruiterRef.get();
 
     if (!recruiterDoc.exists) {
-      return res.status(404).json({ error: "Recruiter not found" });
+      return res.status(404).json({ error: "Recruiter not found", status: "404" });
     }
 
     const organizationRef = recruiterDoc.data().organization;
@@ -209,7 +209,7 @@ router.delete("/organization", authenticateUser, checkIsRecruiter, async (req, r
     await recruiterRef.update({ organization: firebase.firestore.FieldValue.delete() });
     return res.status(200).json({ msg: "Organization successfully deleted" });
   } catch (error) {
-    return res.status(500).json({ error: "Failed to delete organization" });
+    return res.status(500).json({ error: "Failed to delete organization", status: "500" });
   }
 });
 
@@ -226,7 +226,7 @@ router.post("/job", authenticateUser, checkIsRecruiter, validateJobPosting, asyn
       .slice(0, 20)
       .map((error) => error.msg)
       .join(", ");
-    return res.status(400).json({ error: errorMessage });
+    return res.status(400).json({ error: errorMessage, status: "400" });
   }
 
   const { title, location, starts, expires, skills, jobDescriptions, salary, type } = req.body;
@@ -237,7 +237,7 @@ router.post("/job", authenticateUser, checkIsRecruiter, validateJobPosting, asyn
     const recruiterDoc = await recruiterRef.get();
 
     if (!recruiterDoc.exists) {
-      return res.status(404).json({ error: "Recruiter not found" });
+      return res.status(404).json({ error: "Recruiter not found", status: "404" });
     }
 
     const recruiterData = recruiterDoc.data();
@@ -253,7 +253,7 @@ router.post("/job", authenticateUser, checkIsRecruiter, validateJobPosting, asyn
     const organizationData = organizationDoc.data();
 
     if (!organizationData || !organizationData.name) {
-      return res.status(401).json({ error: "Organization data not found" });
+      return res.status(401).json({ error: "Organization data not found", status: "401" });
     }
 
     const jobRef = db.collection("job_postings").doc();
@@ -281,7 +281,7 @@ router.post("/job", authenticateUser, checkIsRecruiter, validateJobPosting, asyn
 
     return res.status(201).json({ msg: "Job created successfully" });
   } catch (error) {
-    return res.status(500).json({ error: "Failed to post a job" });
+    return res.status(500).json({ error: "Failed to post a job", status: "500" });
   }
 });
 
@@ -303,7 +303,7 @@ router.patch(
         .slice(0, 20)
         .map((error) => error.msg)
         .join(", ");
-      return res.status(400).json({ error: errorMessage });
+      return res.status(400).json({ error: errorMessage, status: "400" });
     }
     const { id } = req.params;
     const updates = req.body;
@@ -328,7 +328,7 @@ router.patch(
       }, {});
 
     if (Object.keys(filteredUpdates).length === 0) {
-      return res.status(400).json({ error: "No valid fields provided for update" });
+      return res.status(400).json({ error: "No valid fields provided for update", status: "400" });
     }
 
     try {
@@ -355,7 +355,7 @@ router.patch(
 
       return res.status(200).json({ msg: "Job updated successfully" });
     } catch (error) {
-      return res.status(500).json({ error: "Failed to update job" });
+      return res.status(500).json({ error: "Failed to update job", status: "500" });
     }
   }
 );
@@ -371,7 +371,7 @@ router.get("/jobs", authenticateUser, checkIsRecruiter, async (req, res) => {
     const recruiterDoc = await recruiterRef.get();
 
     if (!recruiterDoc.exists) {
-      return res.status(404).json({ error: " Recruiter not found" });
+      return res.status(404).json({ error: " Recruiter not found", status: "404" });
     }
 
     const recruiterData = recruiterDoc.data();
@@ -394,7 +394,7 @@ router.get("/jobs", authenticateUser, checkIsRecruiter, async (req, res) => {
 
     return res.status(200).json(jobPostings);
   } catch (error) {
-    return res.status(500).json({ error: "Failed to fetch jobs" });
+    return res.status(500).json({ error: "Failed to fetch jobs", status: "500" });
   }
 });
 
@@ -413,7 +413,7 @@ router.delete("/job/:id", authenticateUser, checkIsRecruiter, async (req, res) =
     const jobDoc = await jobRef.get();
 
     if (!jobDoc.exists) {
-      return res.status(404).json({ error: " Job not found" });
+      return res.status(404).json({ error: " Job not found", status: "404" });
     }
     // Check if the jobRef exists in the recruiter's postedJobs (array of references)
     const jobOwnedByRecruiter = postedJobs.some(
@@ -439,7 +439,7 @@ router.delete("/job/:id", authenticateUser, checkIsRecruiter, async (req, res) =
 
     return res.status(200).json({ msg: "Successfully deleted job posting" });
   } catch (error) {
-    return res.status(500).json({ error: "Failed to delete job posting" });
+    return res.status(500).json({ error: "Failed to delete job posting", status: "500" });
   }
 });
 export default router;

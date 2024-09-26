@@ -24,7 +24,7 @@ router.get("/profile", authenticateUser, checkIsJobSeeker, (req, res) => {
     // Check if any required fields are missing
     for (const field of requiredFields) {
       if (!user[field]) {
-        return res.status(400).json({ error: `Missing required field: ${field}` });
+        return res.status(400).json({ error: `Missing required field: ${field}`, status: "400" });
       }
     }
 
@@ -56,7 +56,7 @@ router.get("/profile", authenticateUser, checkIsJobSeeker, (req, res) => {
 
     return res.status(200).json(profile);
   } catch (error) {
-    return res.status(500).json({ error: "Error fetching job seeker profile" });
+    return res.status(500).json({ error: "Error fetching job seeker profile", status: "500" });
   }
 });
 
@@ -78,7 +78,7 @@ router.patch(
         .slice(0, 20)
         .map((error) => error.msg)
         .join(", ");
-      return res.status(400).json({ error: errorMessage });
+      return res.status(400).json({ error: errorMessage, status: "400", status: "400" });
     }
 
     const jobSeekerID = req.user.uid;
@@ -94,7 +94,7 @@ router.patch(
       }, {});
 
     if (Object.keys(filteredUpdates).length === 0) {
-      return res.status(400).json({ error: "No valid fields provided for update" });
+      return res.status(400).json({ error: "No valid fields provided for update", status: "400" });
     }
 
     try {
@@ -102,7 +102,7 @@ router.patch(
       const jobSeekerDoc = await jobSeekerRef.get();
 
       if (!jobSeekerDoc.exists) {
-        return res.status(404).json({ error: "Job seeker doc not found" });
+        return res.status(404).json({ error: "Job seeker doc not found", status: "404" });
       }
 
       filteredUpdates.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
@@ -112,7 +112,7 @@ router.patch(
         .status(200)
         .json({ msg: `Job Seeker with id ${jobSeekerID} updated successfully` });
     } catch (error) {
-      res.status(500).json({ error: "Error while updating job seeker profile" });
+      res.status(500).json({ error: "Error while updating job seeker profile", status: "500" });
     }
   }
 );

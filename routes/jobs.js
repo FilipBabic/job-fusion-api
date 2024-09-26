@@ -24,7 +24,7 @@ router.get("/all", async (req, res) => {
       .get();
 
     if (jobsRef.empty) {
-      return res.status(404).json({ error: "Job postings not found" });
+      return res.status(404).json({ error: "Job postings not found", status: "404" });
     }
 
     const allJobs = [];
@@ -36,7 +36,7 @@ router.get("/all", async (req, res) => {
 
     return res.status(200).json(allJobs);
   } catch (error) {
-    return res.status(500).json({ error: "Failed to retrieve user" });
+    return res.status(500).json({ error: "Failed to retrieve user", status: "500" });
   }
 });
 
@@ -70,7 +70,7 @@ router.get("/", async (req, res) => {
     const snapshot = await jobsRef.get();
 
     if (snapshot.empty) {
-      return res.status(404).json({ error: "No more jobs found" });
+      return res.status(404).json({ error: "No more jobs found", status: "404" });
     }
 
     const jobs = snapshot.docs.map((doc) => ({
@@ -100,7 +100,7 @@ router.get("/", async (req, res) => {
     });
   } catch (error) {
     console.error("Error retrieving jobs:", error.message);
-    return res.status(500).json({ error: "Failed to retrieve jobs" });
+    return res.status(500).json({ error: "Failed to retrieve jobs", status: "500" });
   }
 });
 
@@ -113,7 +113,7 @@ router.get("/:id", async (req, res) => {
     const jobDoc = await jobRef.get();
 
     if (!jobDoc.exists) {
-      return res.status(400).json({ error: `Job with ID ${uid} not found` });
+      return res.status(404).json({ error: `Job with ID ${uid} not found`, status: "404" });
     }
 
     const jobData = jobDoc.data();
@@ -122,10 +122,22 @@ router.get("/:id", async (req, res) => {
     delete jobData.recruiterRef;
     delete jobData.createdAt;
     delete jobData.updatedAt;
+    const etag = generateETag(jobData);
+    res.setHeader("ETag", etag);
+
+    res.set({
+      "Cache-Control": "public, max-age=60", // Cache for 60 seconds
+      ETag: etag,
+    });
+
+    if (req.headers["if-none-match"] === etag) {
+      console.log("Data job details has not change");
+      return res.status(304).end("Data has not change");
+    }
 
     return res.status(200).json(jobData);
   } catch (error) {
-    return res.status(500).json({ error: "Error while fetching jobs" });
+    return res.status(500).json({ error: "Error while fetching jobs", status: "500" });
   }
 });
 

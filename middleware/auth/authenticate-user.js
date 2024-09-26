@@ -20,11 +20,11 @@ const authenticateUser = async (req, res, next) => {
       }
     }
     if (!userDoc) {
-      return res.status(400).json({ error: "User doesn't exists" });
+      return res.status(404).json({ error: "User doesn't exists", status: "404" });
     }
     next();
   } catch (error) {
-    return res.status(403).json({ error: "Invalid Token" });
+    return res.status(403).json({ error: "Invalid Token", status: "403" });
   }
 };
 

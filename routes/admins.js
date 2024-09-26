@@ -15,13 +15,13 @@ router.delete("/:id", authenticateUser, checkIsAdmin, async (req, res) => {
     const jobSeekerDoc = await jobSeekerRef.get();
 
     if (!jobSeekerDoc.exists) {
-      return res.status(404).json({ error: "Job posting not found" });
+      return res.status(404).json({ error: "Job posting not found", status: "404" });
     }
 
     await jobSeekerRef.delete();
     res.status(200).json({ msg: "Job posting deleted successfully" });
   } catch (error) {
-    res.status(500).json({ error: "Error deleting job posting" });
+    res.status(500).json({ error: "Error deleting job posting", status: "500" });
   }
 });
 

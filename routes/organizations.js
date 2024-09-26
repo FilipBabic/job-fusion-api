@@ -9,7 +9,7 @@ router.get("/", async (req, res) => {
     const organizationRef = await db.collection("organizations").get();
 
     if (organizationRef.empty) {
-      return res.status(404).json({ error: "organization not found" });
+      return res.status(404).json({ error: "organization not found", status: "404" });
     }
     let id = 0;
     const allOrganizations = [];
@@ -27,7 +27,7 @@ router.get("/", async (req, res) => {
     res.setHeader("ETag", etag);
 
     res.set({
-      "Cache-Control": "public, max-age=30", // Cache for 30 seconds
+      "Cache-Control": "public, max-age=60", // Cache for 60 seconds
       ETag: etag,
     });
 
@@ -38,7 +38,7 @@ router.get("/", async (req, res) => {
 
     return res.status(200).json(allOrganizations);
   } catch (error) {
-    return res.status(500).json({ error: "Failed to retrieve ORGANIZATION" });
+    return res.status(500).json({ error: "Failed to retrieve ORGANIZATION", status: "500" });
   }
 });
 

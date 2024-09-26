@@ -4,7 +4,7 @@ const checkIsRecruiter = (req, res, next) => {
   if (userRole === "recruiters") {
     next();
   } else {
-    return res.status(403).json({ error: "Access forbidden" });
+    return res.status(403).json({ error: "Access forbidden", status: "403" });
   }
 };
 

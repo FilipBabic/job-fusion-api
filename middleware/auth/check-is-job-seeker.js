@@ -4,7 +4,7 @@ const checkIsJobSeeker = (req, res, next) => {
   if (userRole === "job_seekers") {
     next();
   } else {
-    return res.status(403).json({ error: "Access forbidden" });
+    return res.status(403).json({ error: "Access forbidden", status: "403" });
   }
 };
 
