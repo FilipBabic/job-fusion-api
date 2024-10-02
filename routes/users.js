@@ -91,7 +91,7 @@ router.post("/login", async (req, res) => {
     const cookieConfig = {
       httpOnly: true, // to disable accessing cookie via client side js
       //secure: true, // to force https (if you use it)
-      maxAge: 1000000, // ttl in seconds (remove this option and cookie will die when browser is closed)
+      maxAge: 30 * 60 * 1000, // ttl in seconds (remove this option and cookie will die when browser is closed)
       // signed: true, // if you use the secret with cookieParser
     };
     res.cookie("ftoken", `${token}`, cookieConfig);
@@ -99,6 +99,56 @@ router.post("/login", async (req, res) => {
   } catch (error) {
     return res.status(500).json({ error: "Invalid token", status: "500" });
   }
+});
+
+router.get("/auth/check", async (req, res) => {
+  const token = req.cookies.ftoken;
+  if (!token) {
+    return res.status(200).json({ msg: "no_token" });
+  }
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    const { uid, email } = decodedToken;
+    let role = null;
+    let userData = null;
+    // Checking which collection the user belongs to
+    for (const userRole of ["job_seekers", "recruiters", "admins", "head_admins"]) {
+      const userRef = db.collection(userRole).doc(uid);
+      const userDoc = await userRef.get();
+
+      if (userDoc.exists) {
+        role = userRole;
+
+        await userRef.update({
+          lastLogin: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        userData = userDoc.data();
+        break;
+      }
+    }
+    if (!role) {
+      return res.status(404).json({ error: "User role not found", status: "404" });
+    }
+    return res.status(200).json(userData);
+  } catch (error) {
+    if (error.code === "auth/id-token-expired") {
+      return res.status(401).json({ error: "Token expired. Please log in again.", status: "401" });
+    } else {
+      return res.status(401).json({ error: "Unauthorized User", status: "401" });
+    }
+  }
+});
+
+router.post("/logout", (req, res) => {
+  // Clear the cookie by sending the same name and options, with an empty value
+  res.clearCookie("ftoken", {
+    httpOnly: true,
+    // sameSite: 'Strict',
+    // secure: true, // Ensure this is true if using HTTPS
+  });
+
+  // Optionally, you can send a response message
+  res.status(200).json({ message: "Successfully logged out" });
 });
 
 export default router;
